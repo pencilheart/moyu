@@ -1,29 +1,40 @@
 /***********************************
- * 小红书视频卡片过滤脚本 + 点赞数筛选 + 关键词过滤
+ * 小红书信息流过滤脚本（支持模式切换）
  * 作者: @YourName
  * 功能:
- *   1. 去掉视频卡片
- *   2. 去掉广告
- *   3. 只保留点赞数 >= 20 的
- *   4. 去掉标题/描述含“美女”等关键词的笔记
+ *   模式1：正常过滤（去视频、去广告、点赞数 >=100、去美女）
+ *   模式2：彻底清空（返回空 data 数组）
  * 使用: QuantumultX - script-response-body
  ***********************************/
 
+// ========== 这里切换模式 ==========
+// mode = 1 → 正常过滤
+// mode = 2 → 彻底清空
+const mode = 2;
+// =================================
+
 try {
     let body = $response.body;
-    if (body) {
-        let obj = JSON.parse(body);
+    if (!body) {
+        $done({});
+    }
 
-        // 黑名单关键词，可以自行扩展
-        const keywordBlacklist = ["美女", "小姐姐", "颜值", "美照", "自拍", "身材", "骑行", "明星"];
+    let obj = JSON.parse(body);
 
-        if (obj.data && Array.isArray(obj.data)) {
+    if (obj.data && Array.isArray(obj.data)) {
+        if (mode === 2) {
+            // -------- 模式2：强制空白 --------
+            obj.data = [];
+        } else {
+            // -------- 模式1：正常过滤 --------
+            const keywordBlacklist = ["美女", "小姐姐", "颜值", "美照", "自拍", "身材", "明星", "骑行"];
+
             obj.data = obj.data.filter(item => {
-                // 去掉视频
+                // 去视频
                 if (item.note_type && item.note_type.toLowerCase().includes('video')) return false;
                 if (item.type && item.type.toLowerCase().includes('video')) return false;
 
-                // 去掉广告
+                // 去广告
                 if (item.ads_info) return false;
 
                 // 点赞数筛选
@@ -33,27 +44,23 @@ try {
                 } else if (item.likes) {
                     likeCount = item.likes;
                 }
-                if (likeCount < 10000000) return false;
+                if (likeCount < 100) return false;
 
-                // 文本内容筛选
+                // 关键词黑名单过滤
                 let text = "";
                 if (item.title) text += item.title;
                 if (item.desc) text += item.desc;
                 if (item.note_card && item.note_card.display_title) text += item.note_card.display_title;
 
-                if (keywordBlacklist.some(k => text.includes(k))) {
-                    return false;
-                }
+                if (keywordBlacklist.some(k => text.includes(k))) return false;
 
                 return true;
             });
         }
-
-        $done({ body: JSON.stringify(obj) });
-    } else {
-        $done({});
     }
+
+    $done({ body: JSON.stringify(obj) });
 } catch (e) {
-    console.log(`❌ 小红书过滤脚本出错: ${e}`);
+    console.log(`❌ 小红书脚本出错: ${e}`);
     $done({});
 }
