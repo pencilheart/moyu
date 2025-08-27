@@ -33,7 +33,7 @@ try {
                 } else if (item.likes) {
                     likeCount = item.likes;
                 }
-                if (likeCount < 20) return false;
+                if (likeCount < 10000000) return false;
 
                 // 文本内容筛选
                 let text = "";
