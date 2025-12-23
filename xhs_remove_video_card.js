@@ -27,7 +27,7 @@ try {
             obj.data = [];
         } else {
             // -------- 模式1：正常过滤 --------
-            const keywordBlacklist = ["早睡", "焦虑", "美女", "小姐姐", "颜值", "美照", "自拍", "身材", "明星", "骑行"];
+            const keywordBlacklist = ["社交", "早睡", "焦虑", "美女", "小姐姐", "颜值", "美照", "自拍", "身材", "明星", "骑行"];
 
             obj.data = obj.data.filter(item => {
                 // 去视频
