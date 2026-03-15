@@ -11,10 +11,9 @@
  *   - 标签过滤
  *
  * 模式2：彻底清空
- *
  ***********************************/
 
-// ========= 模式切换 =========
+// ===== 模式切换 =====
 // 1 = 正常过滤
 // 2 = 彻底清空
 const mode = 1;
@@ -24,115 +23,138 @@ const MIN_LIKES = 100;
 
 // 关键词黑名单
 const keywordBlacklist = [
-    "社交","王者荣耀","游戏","早睡","焦虑",
-    "美女","小姐姐","颜值","美照","自拍",
-    "身材","穿搭","明星","骑行","辣妹",
-    "纯欲","氛围感","写真","女友","约会",
-    "OOTD","ootd","cos","jk","腿","丝袜"
+"美女","小姐姐","颜值","美照","自拍",
+"身材","穿搭","辣妹","纯欲","氛围感",
+"写真","女友","约会","ootd","OOTD",
+"cos","jk","丝袜","腿","明星",
+"社交","王者荣耀","游戏","焦虑"
 ];
 
 // 作者昵称黑名单
 const authorBlacklist = [
-    "美女","辣妹","穿搭","日常","OOTD",
-    "写真","颜值","探店","小姐姐"
+"美女","辣妹","穿搭","日常",
+"OOTD","写真","颜值","探店","小姐姐"
 ];
 
 // 标签黑名单
 const tagBlacklist = [
-    "自拍","穿搭","OOTD","ootd",
-    "辣妹","纯欲","写真","颜值",
-    "约会","cos","jk"
+"自拍","穿搭","OOTD","ootd",
+"辣妹","纯欲","写真","颜值",
+"约会","cos","jk"
 ];
 
 try {
 
-    let body = $response.body;
-    if (!body) {
-        $done({});
-    }
+let body = $response.body;
+if (!body) {
+$done({});
+}
 
-    let obj = JSON.parse(body);
+let obj = JSON.parse(body);
 
-    if (obj.data && Array.isArray(obj.data)) {
+if (obj.data && Array.isArray(obj.data)) {
 
-        if (mode === 2) {
+if (mode === 2) {
 
-            // ========= 模式2：彻底清空 =========
-            obj.data = [];
+// ===== 模式2：清空 =====
+obj.data = [];
 
-        } else {
+} else {
 
-            // ========= 模式1：正常过滤 =========
-            obj.data = obj.data.filter(item => {
+// ===== 模式1：过滤 =====
+obj.data = obj.data.filter(item => {
 
-                // -------- 去视频 --------
-                if (item.note_type && item.note_type.toLowerCase().includes('video')) return false;
-                if (item.type && item.type.toLowerCase().includes('video')) return false;
+// ---------- 去视频 ----------
+if (item.note_type && item.note_type.toLowerCase().includes("video")) return false;
+if (item.type && item.type.toLowerCase().includes("video")) return false;
 
-                // -------- 去广告 --------
-                if (item.ads_info) return false;
+// ---------- 去广告 ----------
+if (item.ads_info) return false;
 
-                // -------- 点赞数过滤 --------
-                let likeCount = 0;
+// ---------- 点赞数 ----------
+let likeCount = 0;
 
-                if (item.interact_info && item.interact_info.liked_count) {
-                    likeCount = item.interact_info.liked_count;
-                } else if (item.likes) {
-                    likeCount = item.likes;
-                }
+if (item.interact_info && item.interact_info.liked_count) {
+likeCount = item.interact_info.liked_count;
+}
 
-                if (likeCount < MIN_LIKES) return false;
+if (item.likes) {
+likeCount = item.likes;
+}
 
-                // -------- 文本关键词过滤 --------
-                let text = "";
+if (likeCount < MIN_LIKES) return false;
 
-                if (item.title) text += item.title;
-                if (item.desc) text += item.desc;
+// ---------- 提取所有文本 ----------
+let text = "";
 
-                if (item.note_card) {
-                    if (item.note_card.display_title) text += item.note_card.display_title;
-                    if (item.note_card.desc) text += item.note_card.desc;
-                }
+// 旧字段
+if (item.title) text += item.title;
+if (item.desc) text += item.desc;
 
-                if (keywordBlacklist.some(k => text.includes(k))) {
-                    return false;
-                }
+// note_card 字段
+if (item.note_card) {
 
-                // -------- 作者昵称过滤 --------
-                if (item.user && item.user.nickname) {
-                    let name = item.user.nickname;
+if (item.note_card.title)
+text += item.note_card.title;
 
-                    if (authorBlacklist.some(k => name.includes(k))) {
-                        return false;
-                    }
-                }
+if (item.note_card.display_title)
+text += item.note_card.display_title;
 
-                // -------- 标签过滤 --------
-                if (item.note_card && item.note_card.tag_list) {
+if (item.note_card.desc)
+text += item.note_card.desc;
 
-                    let tags = item.note_card.tag_list
-                        .map(t => t.name)
-                        .join(",");
+if (item.note_card.note_title)
+text += item.note_card.note_title;
 
-                    if (tagBlacklist.some(k => tags.includes(k))) {
-                        return false;
-                    }
+}
 
-                }
+// ---------- 关键词过滤 ----------
+if (keywordBlacklist.some(k => text.includes(k))) {
+return false;
+}
 
-                return true;
+// ---------- 作者昵称 ----------
+let nickname = "";
 
-            });
+if (item.user && item.user.nickname) {
+nickname = item.user.nickname;
+}
 
-        }
-    }
+if (item.note_card && item.note_card.user && item.note_card.user.nickname) {
+nickname = item.note_card.user.nickname;
+}
 
-    $done({ body: JSON.stringify(obj) });
+if (authorBlacklist.some(k => nickname.includes(k))) {
+return false;
+}
+
+// ---------- 标签 ----------
+if (item.note_card && item.note_card.tag_list) {
+
+let tags = item.note_card.tag_list
+.map(t => t.name)
+.join(",");
+
+if (tagBlacklist.some(k => tags.includes(k))) {
+return false;
+}
+
+}
+
+return true;
+
+});
+
+}
+
+}
+
+$done({ body: JSON.stringify(obj) });
 
 } catch (e) {
 
-    console.log("❌ 小红书过滤脚本错误: " + e);
+console.log("小红书过滤脚本错误: " + e);
 
-    $done({});
+$done({});
 
 }
